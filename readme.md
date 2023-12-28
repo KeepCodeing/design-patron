@@ -331,3 +331,115 @@ public:
     }
 };
 ```
+
+### 迪米特法则
+迪米特法则的核心观念就是类间解耦，弱耦合，只有弱耦合了以后，类的复用率才可以提高。其要求的结果就是产生了大量的中转或跳转类，导致系统的复杂性提高，同时也为维护带来了难度。
+
+该法则要求类间暴露的方法尽量少（高内聚），类内部对输入或输出的参数依赖尽量少（低耦合）。
+
+考虑一个聊天室功能，假设它需要经过以下步骤：
+1. 指定聊天室ID
+2. 用对应ID建立连接
+3. 判断连接是否成功
+4. 收发消息
+5. 终止连接
+
+很容易可以发现，上述功能是没必要全部暴露出去的。如果调用类需要一步步将这些步骤组装起来，那么当聊天室功能发生变化时，例如需要在1，2之间加入指定白名单的功能，就会波及所有调用类。
+
+在设计类时，考虑如何暴露最少的`public`方法和属性，减少由于变更引起的风险扩散范围。
+
+在实际应用中经常会出现这样一个方法：放在本类中也可以，放在其他类中也没有错，那怎么去衡量呢？你可以坚持这样一个原则：如果一个方法放在本类中，既不增加类间关系，也对本类不产生负面影响，那就放置在本类中
+
+```cpp
+class Chat {
+public:
+	// 暴露给外部的方法，开箱即用，调用者不需要知道细节
+	bool CreateChatRoom(int id);
+	
+	bool SendMsg(string msg);
+	
+	string RecMsg();
+	
+	bool CloseConnection();
+	
+private:
+	int m_iRoomId;
+	
+	// 内部方法，根据功能细分组合，修改时不影响调用者
+	bool CreateConnection();
+	bool CheckConnetionState();
+	bool StopConnection();
+
+};
+```
+
+### 开闭原则
+开闭原则的定义：软件实体应该对扩展开放，对修改关闭，其含义是说一个软件实体应该通过扩展来实现变化，而不是通过修改已有的代码来实现变化。
+
+开闭原则可以说是上面所有原则的综合应用。类的设计越满足开闭原则，在功能变更时对调用者的影响越小。
+
+当然，也不是所有场景都需要用开闭原则来避免修改，下面分情况讨论：
+1. 逻辑变化：假设要把`a+b`改成`a-b`，且调用者不受该改动影响（整体逻辑变更），那么直接修改即可；
+2. 子模块变化：如果有的地方要改成`a*b`，有的地方又要改成`a+b`，那么直接修改就不满足了。这时就需要通过继承对该修改进行扩展。
+
+```cpp
+class Calculator {
+public:
+	int calc(int a, int b) {
+		// 改为a*b后，整体逻辑变更，不需要扩展后再处理
+		return a + b;
+	}
+};
+
+
+void Proc() {
+	Calculator calcor;
+	
+	calcor.calc(1, 2);
+}
+
+
+class Reader {
+public:
+	void ReadData() = 0;
+};
+
+// 从磁盘读取数据
+class DeskReader: public Reader {
+public:
+	void ReadData() {
+		cout << "read data from desk" << endl;
+	}
+};
+
+class AdvDeskReader: public DeskReader {
+public:
+	void ReadData() {
+		cout << "read data from desk and process it" << endl;
+	}
+}
+
+void GetData(Reader *reader) {
+	reader->ReadData();
+}
+
+int main() {
+	Reader *dReader = new DeskReader;
+	
+	// 从磁盘读取数据
+	GetData(dReader);
+
+	// 假设某天需求变了，要在读取数据后，对数据进行处理
+	// 直接修改DeskReader，可以完成需求，但也会影响到别
+	// 处的GetData逻辑。
+	// 所以通过继承覆写来对该需求实现扩展。
+	
+	Reader *advReader = new AdvDeskReader();
+	
+	// 调用者不受该需求修改影响，一样能够完成功能
+	GetData(advReader);
+	
+
+	return 0;
+}
+```
