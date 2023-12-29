@@ -790,5 +790,219 @@ public:
 	// 导致A、B、C都需要更改
 	void save() = 0;
 };
+```
+
+### 模板方法模式
+模板方法模式是一种行为设计模式，它定义了一个算法的骨架，将算法中某些步骤的具体实现延迟到子类中。通过模板方法模式，可以在不改变算法结构的情况下，允许子类重新定义算法中的某些步骤，以满足特定的需求。
+
+在模板方法模式中，有两种关键角色：
+1. 抽象类：抽象类定义了一个模板方法，它作为算法的骨架，包含了多个步骤，其中有些步骤的实现可以在抽象类中定义，而有些步骤的实现则由子类提供。抽象类可以包含其他具体方法，这些方法可以由模板方法调用或被子类使用。
+2. 具体类：具体类是抽象类的子类，它实现了抽象类中定义的那些需要子类提供具体实现的步骤。具体类可以根据需要重写模板方法中的某些步骤，以定制算法的行为。
+
+模板方法模式的关键思想是将算法的不变部分封装在抽象类中，而将可变部分留给具体子类来实现。这样可以确保算法的一致性，同时也允许子类根据特定需求进行定制。
+
+模板方法中使用一个调用方法将实现步骤组合起来，不同子类不同行为的方法则使用虚函数交由子类实现。在这个过程中，可以只将调用方法暴露给外界（符合迪米特法则），并且加上`final`防止被重写。
+
+下面是一份不使用模板方法模式的代码，可以发现两个子类的调用逻辑是完全一样的：
+```cpp
+#include <iostream>
+using namespace std;
+
+class Chat {
+public:
+	virtual void say() = 0;
+	virtual void connect() = 0;
+	virtual void close() = 0;
+};
+
+class ChatA: public Chat {
+public:
+	void say() {
+		connect();
+		cout << "chat A says" << endl;
+		close();
+	}
+	
+	void connect() {
+		cout << "connect to room" << endl;
+	}
+	
+	void close() {
+		cout << "close connection" << endl;		
+	}
+};
+
+class ChatB: public Chat {
+public:
+	void say() {
+		connect();
+		cout << "chat B says" << endl;
+		close();
+	}
+	
+	void connect() {
+		cout << "connect to room" << endl;
+	}
+	
+	void close() {
+		cout << "close connection" << endl;		
+	}
+	
+};
+
+int main() {
+	Chat *chatA = new ChatA;
+	Chat *chatB = new ChatB;
+	
+	chatA->say();
+	chatB->say();
+	
+	delete chatA;
+	delete chatB;
+	
+	return 0;
+}
+```
+
+接下来是使用模板方法的简化：
+```cpp
+#include <iostream>
+
+// 抽象类
+class Cook {
+public:
+    // 模板方法，定义炒菜的算法骨架
+	// 加上final防止被子类重写
+    void cookDish() final {
+        prepareIngredients();
+        heatOil();
+        cookFood();
+        addSeasoning();
+        serveDish();
+    }
+
+// 只暴露调用方法
+private:
+    // 具体方法，准备食材
+    void prepareIngredients() {
+        std::cout << "准备食材" << std::endl;
+    }
+
+    // 具体方法，加热油
+    void heatOil() {
+        std::cout << "加热油" << std::endl;
+    }
+
+    // 抽象方法，烹饪食物
+    virtual void cookFood() = 0;
+
+    // 抽象方法，添加调料
+    virtual void addSeasoning() = 0;
+
+    // 具体方法，上菜
+    void serveDish() {
+        std::cout << "上菜" << std::endl;
+    }
+};
+
+// 具体类，炒青椒
+class StirFryGreenPepper : public Cook {
+private:
+    void cookFood() final {
+        std::cout << "炒青椒" << std::endl;
+    }
+
+    void addSeasoning() final {
+        std::cout << "加盐和鸡精" << std::endl;
+    }
+};
+
+// 具体类，炒土豆丝
+class StirFryShreddedPotatoes : public Cook {
+private:
+    void cookFood() final {
+        std::cout << "炒土豆丝" << std::endl;
+    }
+
+    void addSeasoning() final {
+        std::cout << "加盐和酱油" << std::endl;
+    }
+};
+
+// 客户端代码
+int main() {
+    std::cout << "炒青椒：" << std::endl;
+    Cook* greenPepper = new StirFryGreenPepper();
+    greenPepper->cookDish();
+
+    std::cout << "------------------" << std::endl;
+
+    std::cout << "炒土豆丝：" << std::endl;
+    Cook* shreddedPotatoes = new StirFryShreddedPotatoes();
+    shreddedPotatoes->cookDish();
+
+    delete greenPepper;
+    delete shreddedPotatoes;
+
+    return 0;
+}
+```
+
+上面实现的模板方法，对重复逻辑进行了封装，但无法对被封装方法进行控制。下面扩展一个下饺子的方法，它不需要热油：
+```cpp
+// 具体类，下饺子
+class BoilingJiaozi : public Cook {
+private:
+    void cookFood() final {
+        std::cout << "下饺子" << std::endl;
+    }
+
+    void addSeasoning() final {
+        std::cout << "加盐和鸡精" << std::endl;
+    }
+};
+```
+
+执行后会发现不希望执行的热油操作也被调用了。这时就需要使用钩子函数来对这种差异化的调用进行扩展了。
+```cpp
+// 抽象类
+class Cook {
+public:
+    // 模板方法，定义炒菜的算法骨架
+	// 加上final防止被子类重写
+    void cookDish() final {
+        prepareIngredients();
+		// 判断是否需要热油
+		if (shouldHotOil()) {
+			heatOil();
+		}
+        cookFood();
+        addSeasoning();
+        serveDish();
+    }
+	
+	virtual bool shouldHotOil() = 0;
+
+// 只暴露调用方法
+private:
+   	// ...
+};
+
+
+class BoilingJiaozi : public Cook {
+private:
+    void cookFood() final {
+        std::cout << "下饺子" << std::endl;
+    }
+
+    void addSeasoning() final {
+        std::cout << "加盐和鸡精" << std::endl;
+    }
+	
+	// 不需要热油
+	bool shouldHotOil() {
+		return false;
+	}
+};
 
 ```
