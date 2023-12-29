@@ -468,7 +468,7 @@ int main() {
 
 综合来说，单例模式在某些情况下是有用的，但在设计时需要权衡其优缺点，并确保其使用是合理的。在某些情况下，可能有更好的替代方案，如依赖注入等。
 
-单例模式又分为**懒汉模式**和**饿汉模式**。懒汉模式即懒加载在获取实例时才将其实例化，可能存在多线程资源分配问题，但可以节省一些内存；饿汉模式则是程序启动后就实例化。
+单例模式又分为**懒汉模式**和**饿汉模式**。懒汉模式即懒加载：在获取实例时才将其实例化，可能存在多线程资源分配问题，但可以节省一些内存；饿汉模式则是程序启动后就实例化。
 
 不是所有需要全局访问的功能都要使用单例模式实现。例如一个工具类`util`，将它内部所有方法声明为`static`同样能达成目的。
 
@@ -515,4 +515,280 @@ public:
 // 初始化静态成员变量为nullptr
 Singleton* Singleton::instance = nullptr;
 std::mutex Singleton::mutex;
+```
+
+### 工厂模式
+工厂模式旨在提供一种统一的方式来创建不同类型的对象，而无需在客户端代码中直接实例化具体的对象类。它通过将对象的创建逻辑封装在一个工厂类中，客户端只需调用工厂类的方法即可获取所需的对象实例。
+
+工厂模式主要包含以下几个角色：
+1. 抽象产品（Abstract Product）：定义创建的产品的接口，是具体产品类的共同父类或接口。
+2. 具体产品（Concrete Product）：实现抽象产品接口，是具体的产品类。
+3. 抽象工厂（Abstract Factory）：定义创建产品的接口，包含一个或多个创建产品的抽象方法。
+4. 具体工厂（Concrete Factory）：实现抽象工厂接口，负责具体产品的创建，并返回具体产品的实例。
+
+工厂模式有很多变种，下面依次介绍。
+
+#### 简单工厂
+简单工厂（静态工厂）通过一个工厂类来封装对象的创建过程，使得客户端无需直接实例化具体的对象类，而是通过调用工厂类的方法来获取所需的对象实例。
+
+简单工厂模式的优点包括：
+1. 将对象的创建逻辑封装在工厂类中，客户端无需关心具体的对象创建过程，降低了客户端代码的复杂度。
+2. 通过使用工厂类，可以实现对象的创建和使用的解耦，提高了代码的灵活性和可维护性。
+3. 可以集中管理对象的创建过程，便于统一修改和扩展，符合开闭原则。
+
+简单工厂模式的限制和缺点：
+1. 添加新的产品类型需要修改工厂类的代码，违反了开闭原则。
+2. 工厂类职责较重，包含了所有产品的创建逻辑，当产品类型较多时，工厂类可能变得庞大而复杂。
+3. 工厂类通常使用静态方法创建对象，不易于扩展和替换，不适用于复杂的对象创建场景。
+
+使用`C++`实现简单工厂：
+```cpp
+#include <iostream>
+
+// 抽象产品
+class Product {
+public:
+    virtual void use() = 0;
+};
+
+// 具体产品A
+class ConcreteProductA : public Product {
+public:
+    void use() {
+        std::cout << "Using Product A" << std::endl;
+    }
+};
+
+// 具体产品B
+class ConcreteProductB : public Product {
+public:
+    void use() {
+        std::cout << "Using Product B" << std::endl;
+    }
+};
+
+// 简单工厂
+class SimpleFactory {
+public:
+	// 静态创建方法
+    static Product* createProduct(char productType) {
+        if (productType == 'A')
+            return new ConcreteProductA();
+        else if (productType == 'B')
+            return new ConcreteProductB();
+        else
+            return nullptr;
+    }
+};
+
+int main() {
+    Product* productA = SimpleFactory::createProduct('A');
+    if (productA != nullptr) {
+        productA->use();
+        delete productA;
+    }
+
+    Product* productB = SimpleFactory::createProduct('B');
+    if (productB != nullptr) {
+        productB->use();
+        delete productB;
+    }
+
+    return 0;
+}
+```
+
+使用泛型简化操作，但无法限制泛型范围：
+```cpp
+#include <iostream>
+
+// 抽象产品
+template <typename T>
+class Product {
+public:
+    virtual void use() = 0;
+};
+
+// 具体产品A
+template <typename T>
+class ConcreteProductA : public Product<T> {
+public:
+    void use() {
+        std::cout << "Using Product A" << std::endl;
+    }
+};
+
+// 具体产品B
+template <typename T>
+class ConcreteProductB : public Product<T> {
+public:
+    void use() {
+        std::cout << "Using Product B" << std::endl;
+    }
+};
+
+// 简单工厂
+template <typename T>
+class SimpleFactory {
+public:
+    static Product<T>* createProduct() {
+        return new T();
+    }
+};
+
+int main() {
+    Product<ConcreteProductA<int>>* productA = SimpleFactory<ConcreteProductA<int>>::createProduct();
+    productA->use();
+    delete productA;
+
+    Product<ConcreteProductB<std::string>>* productB = SimpleFactory<ConcreteProductB<std::string>>::createProduct();
+    productB->use();
+    delete productB;
+
+    return 0;
+}
+```
+
+#### 抽象工厂
+抽象工厂模式的主要思想是提供一个接口，用于创建一系列相关或依赖的产品对象。客户端通过与抽象工厂和抽象产品进行交互，而无需关心具体的产品创建过程。这样可以实现对象的创建和使用的解耦，提供了一种灵活、可扩展的方式来创建不同类型的相关对象。
+
+抽象工厂相对简单工厂而言进一步降低了依赖的耦合性。简单工厂中有多少个产品工厂内就需要创建多少个对象，无法满足开闭原则；抽象工厂通过工厂接口将不同产品的创建划分，能够更加原子化的创建产品实例。
+
+```cpp
+#include <iostream>
+
+// Abstract Product
+class Product {
+public:
+    virtual void use() = 0;
+};
+
+// Concrete Product A
+class ConcreteProductA : public Product {
+public:
+    void use() {
+        std::cout << "Using Product A" << std::endl;
+    }
+};
+
+// Concrete Product B
+class ConcreteProductB : public Product {
+public:
+    void use() {
+        std::cout << "Using Product B" << std::endl;
+    }
+};
+
+// Abstract Factory
+class AbstractFactory {
+public:
+    virtual Product* createProduct() = 0;
+};
+
+// Concrete Factory A
+class ConcreteFactoryA : public AbstractFactory {
+public:
+    Product* createProduct() {
+        return new ConcreteProductA();
+    }
+};
+
+// Concrete Factory B
+class ConcreteFactoryB : public AbstractFactory {
+public:
+    Product* createProduct() {
+        return new ConcreteProductB();
+    }
+};
+
+// Client code
+int main() {
+    // Create Concrete Factory A
+    AbstractFactory* factoryA = new ConcreteFactoryA();
+    // Use Concrete Factory A to create Product A
+    Product* productA = factoryA->createProduct();
+    productA->use();
+
+    // Create Concrete Factory B
+    AbstractFactory* factoryB = new ConcreteFactoryB();
+    // Use Concrete Factory B to create Product B
+    Product* productB = factoryB->createProduct();
+    productB->use();
+
+    // Cleanup
+    delete productA;
+    delete factoryA;
+    delete productB;
+    delete factoryB;
+
+    return 0;
+}
+```
+
+需要注意的是，抽象工厂在扩展新产品时，能较为简单的实现；但如果要扩展产品功能（对产品族而言），就会有侵入式破坏了。这是因为前者只需要新增一个抽象产品和对应的抽象工厂即可，但后者要求整个产品族都实现该功能。
+
+```cpp
+class Product {
+public:
+	void use() = 0;
+};
+
+class ProductA: Product {
+public:
+	void use() {
+		cout << "use A" << endl;
+	}
+};
+
+class ProductB: Product {
+public:
+	void use() {
+		cout << "use B" << endl;
+	}
+};
+
+class Factory {
+public:
+	Product creator() = 0;
+};
+
+class FactoryA: Factory {
+public:
+	Product createor() {
+		cout << "create A" << endl;
+	}
+};
+
+class FactoryB: Factory {
+public:
+	Product createor() {
+		cout << "create B" << endl;
+	}
+};
+
+// 假设新增一个产品C，那么只需要增加对应产品和工厂即可
+// 无需改动源代码，对扩展开放
+class ProductC: Product {
+public:
+	void use() {
+		cout << "use C" << endl;
+	}
+};
+
+class FactoryC: Factory {
+public:
+	Product creator() {
+		cout << "create C" << endl;
+	}
+
+};
+
+// 但是如果要给所有产品增加个save方法，那上面的所有产品都会受到影响
+class Product {
+public:
+	void use() = 0;
+	// 导致A、B、C都需要更改
+	void save() = 0;
+};
+
 ```
