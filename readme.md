@@ -1004,5 +1004,504 @@ private:
 		return false;
 	}
 };
-
 ```
+
+### 建造者模式
+建造者模式是一种创建型设计模式，它可以将复杂对象的构建过程和表示分离，使得同样的构建过程可以创建不同的表示。
+
+建造者模式的核心思想是将一个复杂对象的构建过程分解为多个简单的步骤，并抽象出一个Builder接口来定义构建过程中的各个步骤。然后，具体的构建过程由不同的具体建造者类来实现，每个具体建造者类都实现了Builder接口，负责构建特定的部分。最后，一个指挥者（Director）类使用具体的建造者对象来构建最终的复杂对象。
+
+建造者模式的主要参与者包括：
+1. Product（产品）：要构建的复杂对象。它通常由多个部分组成，这些部分可以是相互关联的对象。
+2. Builder（抽象建造者）：定义了构建复杂对象的接口。它包含多个抽象方法，用于构建不同部分的对象。
+3. ConcreteBuilder（具体建造者）：实现了Builder接口，负责具体的构建过程。它实现了各个部分的构建方法，并负责追踪和获取最终构建的对象。
+4. Director（指挥者）：负责使用具体的建造者来构建复杂对象。它定义了构建的顺序和流程，通过调用建造者的方法来构建最终的对象。
+
+使用建造者模式可以将对象的构建过程灵活地组合和配置，使得同样的构建过程可以创建出不同的对象表示。同时，它也隐藏了复杂对象的构建细节，使得客户端代码与具体的构建过程解耦，提高了代码的可维护性和扩展性。
+
+建造模式某种程度上是工厂模式和模板方法模式的结合，主要体现在两个方面：
+1. 构建实例，与工厂的区别在于实例是在产品Builder里构建的；
+2. 组合方法，将Builder实例的功能在指示类中组合起来，变成模板方法供外界调用。
+
+```cpp
+#include <iostream>
+using namespace std;
+
+// 产品接口
+class Chat {
+public:
+	virtual bool Connect(int id) = 0;
+	virtual bool Send(string str) = 0;
+	virtual string Recv() = 0;
+	virtual bool Close() = 0;
+	
+	virtual bool CheckConnectionState() {
+		
+		return true;
+	}
+};
+
+// 实现类
+class ChatA: public Chat {
+public:
+	bool Connect(int id) override {
+		cout << "A connect to " << id << endl;
+		return true;
+	}
+	
+	bool Send(string str) override {
+		cout << "A send message: " << str << endl;
+		return true;
+	}
+	
+	string Recv() override {
+		cout << "A recved message" << endl;
+		return "A";
+	}
+	
+	bool Close() override {
+		cout << "A close connection" << endl;
+		return true;
+	}
+};
+
+// 实现类
+class ChatB: public Chat {
+public:
+	bool Connect(int id) override {
+		cout << "B connect to " << id << endl;
+		return true;
+	}
+	
+	bool Send(string str) override {
+		cout << "B send message: " << str << endl;
+		return true;
+	}
+	
+	string Recv() override {
+		cout << "B recved message" << endl;
+		return "B";
+	}
+	
+	bool Close() override {
+		cout << "B close connection" << endl;
+		return true;
+	}
+};
+
+// 构建器接口
+class Builder {
+public:
+	virtual void BuildConnection(int id) = 0;
+	virtual void BuildSend() = 0;
+	virtual void BuildRecv() = 0;
+	virtual void BuildClose() = 0;
+	
+	virtual Chat *getInstance() = 0;
+};
+
+// ChatA构建器实现
+class BuildChatA: public Builder {
+public:
+	void BuildConnection(int id) {
+		chatA->Connect(id);
+	}
+	
+	// 对单个功能进行包装扩展
+	void BuildSend() {
+		if (chatA->CheckConnectionState()) {
+			chatA->Send("hello world");
+		}
+	}
+	
+	void BuildRecv() {
+		if (chatA->CheckConnectionState()) {
+			chatA->Recv();
+		}
+	}
+	
+	void BuildClose() {
+		chatA->Close();
+	}
+	
+	// 获取产品实例不一定要暴露给外界
+	Chat *getInstance() {
+		return chatA;		
+	}
+
+private:
+	// 实例化ChatA，对它的功能进行组合
+	Chat *chatA = new ChatA();
+};
+
+// 指示类，用于将Builder功能组合
+// 可以根据产品不同再细化，这里就用一个
+class Director {
+public:
+	Director(Builder *bder): builder(bder) {
+		
+	}
+	
+	Builder *getBuilder() {
+		return builder;
+	}
+	
+	// 组成一个模板方法
+	void CreateChat(int id) {
+		builder->BuildConnection(id);
+		builder->BuildSend();
+		builder->BuildRecv();
+		builder->BuildClose();
+	}
+	
+private:
+	Builder *builder = nullptr;
+};
+
+int main() {
+	Builder *chatABuilder = new BuildChatA();
+	Director *director = new Director(chatABuilder);
+	
+	director->CreateChat(10);
+	
+	// 创建ChatB同理
+	// ...
+	
+	return 0;
+}
+```
+
+### 代理模式
+代理模式是一种结构型设计模式，它提供了一个代理对象来控制对另一个对象的访问。代理对象充当了客户端和目标对象之间的中介，通过代理对象可以间接访问目标对象，从而在访问过程中增加了额外的控制和功能。
+
+代理模式的主要目的是为其他对象提供一种代理，以控制对这个对象的访问。代理对象持有对目标对象的引用，并在客户端请求时，使用目标对象的接口来完成实际的操作。代理对象可以在调用目标对象之前或之后执行一些附加的操作，例如权限验证、缓存、延迟加载等。
+
+代理模式的参与者包括：
+1. Subject（主题）：定义了目标对象和代理对象共同实现的接口，客户端通过该接口与目标对象进行交互。
+2. RealSubject（真实主题）：实际的目标对象，它是代理对象所代表的对象，提供了真正的业务逻辑。
+3. Proxy（代理）：代理对象，它持有对真实主题的引用，并实现了与主题相同的接口。在客户端请求时，代理对象可以在调用真实主题之前或之后执行额外的操作。
+
+代理模式和建造者模式以及模板方法模式有些类似，它同样是对类方法进行组合，然后提供更强的功能。区别在于代理模式可以更加原子化的对单个方法进行增强，不一定要将原有方法组合在一起。
+
+通过代理模式，能在避免对源对象进行修改的前提下，使用代理对象增加额外功能：
+```cpp
+#include <iostream>
+#include <string>
+
+// 主题接口
+class Subject {
+public:
+    virtual void request() = 0;
+};
+
+// 真实主题
+class RealSubject : public Subject {
+public:
+    void request() override {
+        std::cout << "RealSubject handles the request." << std::endl;
+    }
+};
+
+// 代理
+class Proxy : public Subject {
+public:
+    Proxy(Subject* realSubject) : realSubject_(realSubject) {}
+
+    void request() override {
+        // 在调用真实主题之前可以执行额外的操作
+        std::cout << "Proxy handles the request." << std::endl;
+
+        // 调用真实主题
+        realSubject_->request();
+
+        // 在调用真实主题之后可以执行额外的操作
+        std::cout << "Proxy finishes handling the request." << std::endl;
+    }
+
+private:
+    Subject* realSubject_;
+};
+
+// 客户端代码
+int main() {
+    // 创建真实主题对象
+    RealSubject* realSubject = new RealSubject();
+
+    // 创建代理对象，并将真实主题对象传递给代理对象
+    Proxy* proxy = new Proxy(realSubject);
+
+    // 通过代理对象调用请求
+    proxy->request();
+
+    delete proxy;
+    delete realSubject;
+
+    return 0;
+}
+```
+
+#### 透明代理
+透明代理隐藏了客户端和真实主题之间的交互细节，客户端无需知道代理的存在。
+
+在透明代理的示例中，客户端与真实主题交互时，实际上是通过透明代理来进行的。客户端无需知道代理的存在，直接调用透明代理的request()方法。透明代理在方法的调用前后可以执行额外的操作，同时调用真实主题的request()方法。
+
+```cpp
+#include <iostream>
+
+// 主题接口
+class Subject {
+public:
+    virtual void request() = 0;
+};
+
+// 真实主题
+class RealSubject : public Subject {
+public:
+    void request() override {
+        std::cout << "RealSubject handles the request." << std::endl;
+    }
+};
+
+// 透明代理
+class TransparentProxy : public Subject {
+public:
+    TransparentProxy() : realSubject_(new RealSubject()) {}
+
+    void request() override {
+        // 在调用真实主题之前可以执行额外的操作
+        std::cout << "TransparentProxy handles the request." << std::endl;
+
+        // 调用真实主题
+        realSubject_->request();
+
+        // 在调用真实主题之后可以执行额外的操作
+        std::cout << "TransparentProxy finishes handling the request." << std::endl;
+    }
+
+private:
+    RealSubject* realSubject_;
+};
+
+// 客户端代码
+int main() {
+    // 创建透明代理对象
+    TransparentProxy proxy;
+
+    // 通过透明代理对象调用请求
+    proxy.request();
+
+    return 0;
+}
+```
+
+使用透明代理，对类方法进行增强：
+```cpp
+#include <iostream>
+using namespace std;
+
+// 响应式（C++中没有什么应用场景）：
+// 1. 使用透明代理
+// 2. 重载=之类的操作符
+// 3. 拦截到操作后调用真实对象方法
+// 4. 调用其它影响函数方法
+
+// 普通代理：
+// 在不修改原有方法的情况下，对原有方法进行扩展（AOP）或者延迟加载（效果类似闭包）
+
+class Chat {
+public:
+	virtual void Connect() = 0;
+	virtual void Disconnect() = 0;
+	virtual void Send() = 0;
+};
+
+// 网络聊天实现类，提供了最基本的方法
+class NetChat: public Chat {
+public:
+	void Connect() {
+		cout << "Connect" << endl;
+	}
+	
+	void Disconnect() {
+		cout << "Disconnect" << endl;
+		
+	}
+	
+	void Send() {
+		cout << "Send msg to client" << endl;
+	}
+};
+
+class Proxy {
+public:
+	virtual void SendMsg() = 0;
+	
+};
+
+// 透明代理，对发送消息进行增强
+class ChatProxy: public Proxy { 
+public:
+	ChatProxy(): chat(new NetChat()) {
+		
+	}
+	
+	~ChatProxy() {
+		delete chat;
+	}
+	
+	// 假设每次发送消息都需要发送前连接，发送后断开
+	// 这里同时实现了功能组合和增强
+	void SendMsg() {
+		chat->Connect();
+		chat->Send();
+		chat->Disconnect();
+	}
+	
+private:
+	Chat *chat;
+};
+
+int main() {
+	Proxy *chatProxy = new ChatProxy();
+	
+	chatProxy->SendMsg();
+	
+	delete chatProxy;
+	return 0;
+}
+```
+上面的例子`ChatProxy`没有继承`Chat`，而是用`SendMsg`直接进行了组合。考虑到功能比较简单这样做是没问题的，但明显丢失了代理源对象的特征（也就是丢失了`subject`）。
+
+#### 强制代理
+强制代理要求调用者只能通过代理对象访问源对象。
+
+在强制代理的示例中，客户端需要先进行密码认证，只有在认证成功后才能访问真实主题。强制代理的authenticate()方法用于进行密码校验，如果密码匹配成功，则创建真实主题对象；否则，拒绝访问。客户端通过强制代理的request()方法访问真实主题，只有在认证成功并且真实主题存在时，才会调用真实主题的方法。
+
+```cpp
+#include <iostream>
+#include <string>
+
+// 主题接口
+class Subject {
+public:
+    virtual void request() = 0;
+};
+
+// 真实主题
+class RealSubject : public Subject {
+public:
+    void request() override {
+        std::cout << "RealSubject handles the request." << std::endl;
+    }
+};
+
+// 强制代理
+class ProtectionProxy : public Subject {
+public:
+    ProtectionProxy(const std::string& password) : password_(password), realSubject_(nullptr) {}
+
+    void authenticate(const std::string& password) {
+        if (password == password_) {
+            realSubject_ = new RealSubject();
+        } else {
+            std::cout << "Authentication failed." << std::endl;
+        }
+    }
+
+    void request() override {
+        if (realSubject_) {
+            realSubject_->request();
+        } else {
+            std::cout << "Access denied. Please authenticate first." << std::endl;
+        }
+    }
+
+private:
+    std::string password_;
+    RealSubject* realSubject_;
+};
+
+// 客户端代码
+int main() {
+    // 创建强制代理对象，并设置密码
+    ProtectionProxy proxy("password123");
+
+    // 认证密码
+    proxy.authenticate("password123");
+
+    // 通过强制代理对象调用请求
+    proxy.request();
+
+    return 0;
+}
+```
+
+#### 动态代理
+动态代理是一种在运行时动态生成代理对象的技术，它允许在不修改源代码的情况下创建代理对象。与静态代理相比，动态代理的主要特点是代理类是在程序运行期间动态生成的，而不是在编译时手动编写的。
+
+它可以避免手动编写大量代理类，其作用类似给某个类的所有方法都加上了代理方法。
+
+下面给出一个`Java`的实现例子，`C++`中实现运行时动态生成代理类的功能需要借助库实现。
+
+```java
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+
+// 主题接口
+interface Subject {
+    void request();
+}
+
+// 真实主题
+class RealSubject implements Subject {
+    public void request() {
+        System.out.println("RealSubject handles the request.");
+    }
+}
+
+// 调用处理器
+class ProxyHandler implements InvocationHandler {
+    private Subject realSubject;
+
+    public ProxyHandler(Subject realSubject) {
+        this.realSubject = realSubject;
+    }
+
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        // 在调用真实主题之前可以执行额外的操作
+        System.out.println("Proxy handles the request.");
+
+        // 调用真实主题的方法
+        Object result = method.invoke(realSubject, args);
+
+        // 在调用真实主题之后可以执行额外的操作
+        System.out.println("Proxy finishes handling the request.");
+
+        return result;
+    }
+}
+
+// 客户端代码
+public class Main {
+    public static void main(String[] args) {
+        // 创建真实主题对象
+        Subject realSubject = new RealSubject();
+
+        // 创建调用处理器对象
+        ProxyHandler handler = new ProxyHandler(realSubject);
+
+        // 创建动态代理对象
+        Subject proxy = (Subject) Proxy.newProxyInstance(
+                realSubject.getClass().getClassLoader(),
+                realSubject.getClass().getInterfaces(),
+                handler
+        );
+
+        // 通过动态代理对象调用请求
+        proxy.request();
+    }
+}
+```
+
+可以看到上面`RealSubject`并没有对应的代理类，而是用`InvocationHandler`接口对每个方法进行了拦截，从而实现减少重复代码和动态生成的目的。
