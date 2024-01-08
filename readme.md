@@ -1505,3 +1505,53 @@ public class Main {
 ```
 
 可以看到上面`RealSubject`并没有对应的代理类，而是用`InvocationHandler`接口对每个方法进行了拦截，从而实现减少重复代码和动态生成的目的。
+
+### 原型模式
+原型模式是一种创建型设计模式，其目的是通过复制现有对象来创建新对象，而不是通过使用构造函数创建新对象。原型模式允许我们创建具有相同属性的对象，同时又能够避免构造函数的复杂性。
+
+实现原型模式的时候需要考虑引用对象深拷贝的问题。
+
+```cpp
+#include <iostream>
+
+// 原型类
+class Prototype {
+public:
+    int data;
+
+    // 默认构造函数
+    Prototype() : data(0) {}
+
+    // 拷贝构造函数
+    Prototype(const Prototype& other) : data(other.data) {}
+
+    // 克隆方法
+    virtual Prototype* clone() {
+        return new Prototype(*this);
+    }
+};
+
+// 客户端代码
+int main() {
+    // 创建原型对象
+    Prototype prototype;
+
+    // 修改原型对象的数据
+    prototype.data = 10;
+
+    // 克隆原型对象
+    Prototype* clone = prototype.clone();
+
+    // 修改克隆对象的数据
+    clone->data = 20;
+
+    // 打印原型对象和克隆对象的数据
+    std::cout << prototype.data << std::endl;  // 输出: 10
+    std::cout << clone->data << std::endl;     // 输出: 20
+
+    // 释放克隆对象的内存
+    delete clone;
+
+    return 0;
+}
+```
