@@ -1555,3 +1555,329 @@ int main() {
     return 0;
 }
 ```
+
+### 中介者模式
+中介者模式是一种行为设计模式，旨在降低多个对象和类之间的通信复杂性，通过引入一个中介者对象来封装一系列的对象交互，从而使它们不需要显式地相互引用，实现耦合松散，且可以独立地改变它们之间的交互. 
+
+该模式限制了对象之间的直接交互，迫使它们通过一个中介者对象进行合作，从而消除对象之间的混乱无序的依赖关系. 
+
+中介者模式的优点包括遵循单一职责原则、开闭原则、减轻应用中多个组件间的耦合情况、更方便地复用各个组件等.该模式与责任链模式、命令模式、观察者模式等有不同的连接方式，同时与外观模式类似，都旨在降低多个对象之间的耦合性.
+
+
+中介者模式可以使对象之间的关系数量急剧减少。
+
+中介者承担两方面的职责：
+
+- 中转作用（结构性）：通过中介者提供的中转作用，各个同事对象就不再需要显式引用其他同事，当需要和其他同事进行通信时，通过中介者即可。该中转作用属于中介者在结构上的支持。
+- 协调作用（行为性）：中介者可以更进一步的对同事之间的关系进行封装，同事可以一致地和中介者进行交互，而不需要指明中介者需要具体怎么做，中介者根据封装在自身内部的协调逻辑，对同事的请求进行进一步处理，将同事成员之间的关系行为进行分离和封装。该协调作用属于中介者在行为上的支持。
+
+```cpp
+#include <iostream>
+#include <string>
+
+class Mediator; // 前置声明
+
+// 抽象同事类
+class Colleague {
+public:
+    virtual void sendMessage(const std::string& message) const = 0;
+    virtual void receiveMessage(const std::string& message) const = 0;
+};
+
+// 具体同事类
+class ConcreteColleagueA : public Colleague {
+public:
+    void sendMessage(const std::string& message) const override {
+        mediator->distributeMessage(message, this);
+    }
+
+    void receiveMessage(const std::string& message) const override {
+        std::cout << "ConcreteColleagueA received: " << message << std::endl;
+    }
+
+    void setMediator(Mediator* m) {
+        mediator = m;
+    }
+
+private:
+    Mediator* mediator;
+};
+
+class ConcreteColleagueB : public Colleague {
+public:
+    void sendMessage(const std::string& message) const override {
+        mediator->distributeMessage(message, this);
+    }
+
+    void receiveMessage(const std::string& message) const override {
+        std::cout << "ConcreteColleagueB received: " << message << std::endl;
+    }
+
+    void setMediator(Mediator* m) {
+        mediator = m;
+    }
+
+private:
+    Mediator* mediator;
+};
+
+// 中介者接口
+class Mediator {
+public:
+    virtual void distributeMessage(const std::string& message, const Colleague* colleague) const = 0;
+};
+
+// 具体中介者
+class ConcreteMediator : public Mediator {
+public:
+    void setColleagueA(ConcreteColleagueA* a) {
+        colleagueA = a;
+    }
+
+    void setColleagueB(ConcreteColleagueB* b) {
+        colleagueB = b;
+    }
+
+    void distributeMessage(const std::string& message, const Colleague* colleague) const override {
+        if (colleague == colleagueA) {
+            colleagueB->receiveMessage(message);
+        } else {
+            colleagueA->receiveMessage(message);
+        }
+    }
+
+private:
+    ConcreteColleagueA* colleagueA;
+    ConcreteColleagueB* colleagueB;
+};
+
+int main() {
+    ConcreteMediator mediator;
+    ConcreteColleagueA colleagueA;
+    ConcreteColleagueB colleagueB;
+
+    colleagueA.setMediator(&mediator);
+    colleagueB.setMediator(&mediator);
+    mediator.setColleagueA(&colleagueA);
+    mediator.setColleagueB(&colleagueB);
+
+    colleagueA.sendMessage("Hello from A");
+    colleagueB.sendMessage("Hi from B");
+
+    return 0;
+}
+```
+
+总结：
+1. 中介者模式用一个中介对象来封装一系列的对象交互，中介者使各对象不需要显式地相互引用，从而使其耦合松散，而且可以独立地改变它们之间的交互。中介者模式又称为调停者模式，它是一种对象行为型模式。
+2. 中介者模式包含四个角色：抽象中介者用于定义一个接口，该接口用于与各同事对象之间的通信；具体中介者是抽象中介者的子类，通过协调各个同事对象来实现协作行为，了解并维护它的各个同事对象的引用；抽象同事类定义各同事的公有方法；具体同事类是抽象同事类的子类，每一个同事对象都引用一个中介者对象；每一个同事对象在需要和其他同事对象通信时，先与中介者通信，通过中介者来间接完成与其他同事类的通信；在具体同事类中实现了在抽象同事类中定义的方法。
+3. 通过引入中介者对象，可以将系统的网状结构变成以中介者为中心的星形结构，中介者承担了中转作用和协调作用。中介者类是中介者模式的核心，它对整个系统进行控制和协调，简化了对象之间的交互，还可以对对象间的交互进行进一步的控制。
+4. 中介者模式的主要优点在于简化了对象之间的交互，将各同事解耦，还可以减少子类生成，对于复杂的对象之间的交互，通过引入中介者，可以简化各同事类的设计和实现；中介者模式主要缺点在于具体中介者类中包含了同事之间的交互细节，可能会导致具体中介者类非常复杂，使得系统难以维护。
+5. 中介者模式适用情况包括：系统中对象之间存在复杂的引用关系，产生的相互依赖关系结构混乱且难以理解；一个对象由于引用了其他很多对象并且直接和这些对象通信，导致难以复用该对象；想通过一个中间类来封装多个类中的行为，而又不想生成太多的子类。
+
+### 命令模式
+命令模式是一种行为设计模式，其核心思想是将请求封装为一个对象，从而使你可以用不同的请求对客户进行参数化，对请求排队或记录请求日志，以及支持可撤销的操作。这种模式的实现可以解耦发送者和接收者，发送者和接收者之间不直接交互，而是通过命令对象进行通信。命令模式的本质是将操作抽象为可序列化的命令，使操作可以在合适的时间执行，这种设计带来了许多额外好处。
+
+命令模式的实现步骤通常包括以下关键点：
+1. **定义命令接口**：创建一个命令接口，其中包含执行命令的方法，通常包括 `execute` 方法。
+2. **实现具体命令**：针对不同的操作，实现具体的命令类，这些类需要实现命令接口，并在 `execute` 方法中编写具体的操作逻辑。
+3. **定义命令的接收者**：创建命令的接收者，即实际执行操作的对象，该对象包含了真正的业务逻辑。
+4. **将命令与接收者关联**：在具体命令类中关联特定的命令接收者，确保命令执行时能够调用正确的接收者对象。
+5. **创建命令调用者**：创建命令调用者，负责向命令对象发出请求。命令调用者并不直接执行操作，而是通过命令对象来间接执行操作。
+6. **客户端代码**：在客户端中创建具体的命令对象和命令调用者，并将它们组合在一起，构成一个完整的命令模式结构。
+
+通过以上步骤，可以实现命令模式，实现命令的发出者和执行者之间的解耦，以及支持对命令进行排队、记录日志和撤销操作等特性。
+```cpp
+#include <iostream>
+#include <string>
+/**
+ * The Mediator interface declares a method used by components to notify the
+ * mediator about various events. The Mediator may react to these events and
+ * pass the execution to other components.
+ */
+class BaseComponent;
+class Mediator {
+ public:
+  virtual void Notify(BaseComponent *sender, std::string event) const = 0;
+};
+
+/**
+ * The Base Component provides the basic functionality of storing a mediator's
+ * instance inside component objects.
+ */
+class BaseComponent {
+ protected:
+  Mediator *mediator_;
+
+ public:
+  BaseComponent(Mediator *mediator = nullptr) : mediator_(mediator) {
+  }
+  void set_mediator(Mediator *mediator) {
+    this->mediator_ = mediator;
+  }
+};
+
+/**
+ * Concrete Components implement various functionality. They don't depend on
+ * other components. They also don't depend on any concrete mediator classes.
+ */
+class Component1 : public BaseComponent {
+ public:
+  void DoA() {
+    std::cout << "Component 1 does A.\n";
+    this->mediator_->Notify(this, "A");
+  }
+  void DoB() {
+    std::cout << "Component 1 does B.\n";
+    this->mediator_->Notify(this, "B");
+  }
+};
+
+class Component2 : public BaseComponent {
+ public:
+  void DoC() {
+    std::cout << "Component 2 does C.\n";
+    this->mediator_->Notify(this, "C");
+  }
+  void DoD() {
+    std::cout << "Component 2 does D.\n";
+    this->mediator_->Notify(this, "D");
+  }
+};
+
+/**
+ * Concrete Mediators implement cooperative behavior by coordinating several
+ * components.
+ */
+class ConcreteMediator : public Mediator {
+ private:
+  Component1 *component1_;
+  Component2 *component2_;
+
+ public:
+  ConcreteMediator(Component1 *c1, Component2 *c2) : component1_(c1), component2_(c2) {
+    this->component1_->set_mediator(this);
+    this->component2_->set_mediator(this);
+  }
+  void Notify(BaseComponent *sender, std::string event) const override {
+    if (event == "A") {
+      std::cout << "Mediator reacts on A and triggers following operations:\n";
+      this->component2_->DoC();
+    }
+    if (event == "D") {
+      std::cout << "Mediator reacts on D and triggers following operations:\n";
+      this->component1_->DoB();
+      this->component2_->DoC();
+    }
+  }
+};
+
+/**
+ * The client code.
+ */
+
+void ClientCode() {
+  Component1 *c1 = new Component1;
+  Component2 *c2 = new Component2;
+  ConcreteMediator *mediator = new ConcreteMediator(c1, c2);
+  std::cout << "Client triggers operation A.\n";
+  c1->DoA();
+  std::cout << "\n";
+  std::cout << "Client triggers operation D.\n";
+  c2->DoD();
+
+  delete c1;
+  delete c2;
+  delete mediator;
+}
+
+int main() {
+  ClientCode();
+  return 0;
+}
+```
+
+自己写的实例：
+```cpp
+#include <iostream>
+using namespace std;
+
+// 业务实现类
+class ChatRoom {
+public:
+	void Connect() {
+		cout << "connect to chat room..." << endl;
+	}
+	
+	void Disconnect() {
+		cout << "disconnect from chat room..." << endl;
+	}
+	
+};
+
+// 抽象命令，如果不同命令业务类通用，那也可以在这里
+// 实例化业务类
+class Commander {
+public:
+	virtual void execute() = 0;
+};
+
+// 具体命令
+class ConnectCommand: public Commander {
+public:
+	
+	ConnectCommand() {
+		chat = new ChatRoom();
+	}
+	
+	~ConnectCommand() {
+		delete chat;
+	}
+	
+	// 业务调用细节通过命令执行，对调用者屏蔽
+	void execute() override {
+		cout << "executing commands..." << endl;
+		chat->Connect();
+		chat->Disconnect();
+		cout << "execute commands done..." << endl;
+	}
+
+private:
+	// 隐藏业务实现，可以在命令类中构造，也可以通过命令类构造方法从外部传入
+	ChatRoom *chat;
+	
+};
+
+// 调用者（命令接收者），用来接收命令，并执行
+class Invoker {
+public:
+	Invoker(Commander *com): command(com) {
+		
+	}
+	
+	// 执行命令
+	void Invoke() {
+		cout << "Invoke command..." << endl;
+		command->execute();
+		cout << "Invoke done..." << endl;
+	}
+
+private:
+	Commander *command;	
+};
+
+int main() {
+	// 想要新增命令，只需要增加Commander的实现即可
+	Commander *command = new ConnectCommand();
+	
+	// 把命令交给调用者调用
+	Invoker *invoker = new Invoker(command);
+	
+	invoker->Invoke();
+	
+	delete invoker;
+	delete command;
+	
+	return 0;
+}
+```
