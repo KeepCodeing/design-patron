@@ -1668,7 +1668,7 @@ int main() {
 }
 ```
 
-总结：
+**总结：**
 1. 中介者模式用一个中介对象来封装一系列的对象交互，中介者使各对象不需要显式地相互引用，从而使其耦合松散，而且可以独立地改变它们之间的交互。中介者模式又称为调停者模式，它是一种对象行为型模式。
 2. 中介者模式包含四个角色：抽象中介者用于定义一个接口，该接口用于与各同事对象之间的通信；具体中介者是抽象中介者的子类，通过协调各个同事对象来实现协作行为，了解并维护它的各个同事对象的引用；抽象同事类定义各同事的公有方法；具体同事类是抽象同事类的子类，每一个同事对象都引用一个中介者对象；每一个同事对象在需要和其他同事对象通信时，先与中介者通信，通过中介者来间接完成与其他同事类的通信；在具体同事类中实现了在抽象同事类中定义的方法。
 3. 通过引入中介者对象，可以将系统的网状结构变成以中介者为中心的星形结构，中介者承担了中转作用和协调作用。中介者类是中介者模式的核心，它对整个系统进行控制和协调，简化了对象之间的交互，还可以对对象间的交互进行进一步的控制。
@@ -1687,117 +1687,7 @@ int main() {
 6. **客户端代码**：在客户端中创建具体的命令对象和命令调用者，并将它们组合在一起，构成一个完整的命令模式结构。
 
 通过以上步骤，可以实现命令模式，实现命令的发出者和执行者之间的解耦，以及支持对命令进行排队、记录日志和撤销操作等特性。
-```cpp
-#include <iostream>
-#include <string>
-/**
- * The Mediator interface declares a method used by components to notify the
- * mediator about various events. The Mediator may react to these events and
- * pass the execution to other components.
- */
-class BaseComponent;
-class Mediator {
- public:
-  virtual void Notify(BaseComponent *sender, std::string event) const = 0;
-};
 
-/**
- * The Base Component provides the basic functionality of storing a mediator's
- * instance inside component objects.
- */
-class BaseComponent {
- protected:
-  Mediator *mediator_;
-
- public:
-  BaseComponent(Mediator *mediator = nullptr) : mediator_(mediator) {
-  }
-  void set_mediator(Mediator *mediator) {
-    this->mediator_ = mediator;
-  }
-};
-
-/**
- * Concrete Components implement various functionality. They don't depend on
- * other components. They also don't depend on any concrete mediator classes.
- */
-class Component1 : public BaseComponent {
- public:
-  void DoA() {
-    std::cout << "Component 1 does A.\n";
-    this->mediator_->Notify(this, "A");
-  }
-  void DoB() {
-    std::cout << "Component 1 does B.\n";
-    this->mediator_->Notify(this, "B");
-  }
-};
-
-class Component2 : public BaseComponent {
- public:
-  void DoC() {
-    std::cout << "Component 2 does C.\n";
-    this->mediator_->Notify(this, "C");
-  }
-  void DoD() {
-    std::cout << "Component 2 does D.\n";
-    this->mediator_->Notify(this, "D");
-  }
-};
-
-/**
- * Concrete Mediators implement cooperative behavior by coordinating several
- * components.
- */
-class ConcreteMediator : public Mediator {
- private:
-  Component1 *component1_;
-  Component2 *component2_;
-
- public:
-  ConcreteMediator(Component1 *c1, Component2 *c2) : component1_(c1), component2_(c2) {
-    this->component1_->set_mediator(this);
-    this->component2_->set_mediator(this);
-  }
-  void Notify(BaseComponent *sender, std::string event) const override {
-    if (event == "A") {
-      std::cout << "Mediator reacts on A and triggers following operations:\n";
-      this->component2_->DoC();
-    }
-    if (event == "D") {
-      std::cout << "Mediator reacts on D and triggers following operations:\n";
-      this->component1_->DoB();
-      this->component2_->DoC();
-    }
-  }
-};
-
-/**
- * The client code.
- */
-
-void ClientCode() {
-  Component1 *c1 = new Component1;
-  Component2 *c2 = new Component2;
-  ConcreteMediator *mediator = new ConcreteMediator(c1, c2);
-  std::cout << "Client triggers operation A.\n";
-  c1->DoA();
-  std::cout << "\n";
-  std::cout << "Client triggers operation D.\n";
-  c2->DoD();
-
-  delete c1;
-  delete c2;
-  delete mediator;
-}
-
-int main() {
-  ClientCode();
-  return 0;
-}
-```
-
-自己写的实例：
 ```cpp
 #include <iostream>
 using namespace std;
@@ -1881,3 +1771,232 @@ int main() {
 	return 0;
 }
 ```
+
+### 责任链模式
+责任链模式是一种设计模式，其中许多对象通过每个对象对其下一个对象的引用连接起来，形成一条链。请求在这条链上传递，直到链上的某个对象决定处理该请求。这种模式允许请求的发送者和接收者之间解耦，发送者无需知道请求的具体处理者，而是将请求发送到链上的第一个对象，然后该对象决定是否处理请求或将其传递给链上的下一个对象。责任链模式的核心思想是将请求的发送者和接收者解耦，从而实现请求的动态处理和避免请求发送者与接收者之间的直接耦合。
+
+责任链模式的具体实现步骤通常包括以下关键点：
+1. **定义处理者接口**：创建一个处理者接口，其中包含处理请求的方法，并且通常包括设置下一个处理者的方法。
+2. **实现具体处理者**：针对不同的请求，实现具体的处理者类，这些类需要实现处理者接口，并在处理方法中编写具体的处理逻辑，同时设置下一个处理者的引用。
+3. **构建责任链**：在客户端代码中构建责任链，将具体处理者按照一定顺序连接成责任链。
+4. **发送请求**：在客户端中创建请求对象，并将其发送到责任链的第一个处理者。
+5. **请求处理**：责任链中的每个处理者根据自己的逻辑决定是否处理请求，如果能够处理则进行处理，否则将请求传递给责任链中的下一个处理者。
+
+```cpp
+#include <iostream>
+using namespace std;
+
+// 业务实现类
+class ChatRoom {
+public:
+	void setType(int type) {
+		roomType = type;
+	}
+
+	int getType() {
+		return roomType;
+	}
+	
+	void Connect() {
+		cout << "start connections" << endl;
+	}
+	
+private:
+	int roomType = -1;
+};
+
+// 抽象责任链接口
+class Handlder {
+public:
+	// 要处理的对象
+	Handlder(ChatRoom *chatRoom) {
+		room = chatRoom;		
+	}
+	
+	// 设置下一个节点是谁
+	virtual void setNext(Handlder *hanlder) = 0;
+	
+	// 启动链式调用
+	virtual void InvokeNext() = 0;
+
+protected:
+	ChatRoom *room;
+};
+
+class LocalHandler: public Handlder {
+public:
+	LocalHandler(ChatRoom *room): Handlder(room) {
+		
+	}
+	
+	void setNext(Handlder *nextHandler) {
+		handler = nextHandler;	
+	}
+	
+	void InvokeNext() {
+		if (room->getType() < 0) {
+			cout << "unknow room type!" << endl;
+		}
+		
+		// 满足local的处理条件，就直接用local处理
+		if (room->getType() == 1) {
+			cout << "using local handler" << endl;
+			room->Connect();
+			return;
+		} 
+		
+		// 否则用下个节点
+		handler->InvokeNext();
+	}
+
+private:
+	Handlder *handler = nullptr;
+};
+
+class NetHandler: public Handlder {
+public:
+	
+	NetHandler(ChatRoom *room): Handlder(room) {
+			
+	}
+	
+	void setNext(Handlder *nextHandler) {
+		handler = nextHandler;	
+	}
+	
+	void InvokeNext() {
+		if (room->getType() < 0) {
+			cout << "unknow room type!" << endl;
+		}
+		
+		// local不满足，进入到net处理范围
+		if (room->getType() == 2) {
+			cout << "using Net handler" << endl;
+			room->Connect();
+			return;
+		} 
+		
+		handler->InvokeNext();
+	}
+
+private:
+	Handlder *handler = nullptr;
+};
+
+int main() {
+	ChatRoom *chatRoom = new ChatRoom;
+	
+	Handlder *local = new LocalHandler(chatRoom);
+	Handlder *net = new NetHandler(chatRoom);
+	
+	chatRoom->setType(2);
+	
+	local->setNext(net);
+	
+	local->InvokeNext();
+	
+	
+	delete chatRoom;
+	delete local;
+	delete net;
+	
+	return 0;
+}
+```
+
+责任链模式虽然分离了职责，但调用链变长后，没法定位业务对象究竟给那个类处理了。这样会使得难以定位问题。
+
+### 装饰器模式
+装饰器模式是一种结构型设计模式，它允许在不修改现有对象的情况下，动态地向对象添加额外的功能和责任。在装饰器模式中，有一个核心对象（被装饰的对象），它实现了某个基本功能。装饰器对象包装核心对象，并在其基础上提供了额外的功能或修改了原始对象的行为。
+
+装饰器模式的主要参与者包括：
+1. Component（组件）：定义了核心对象的接口，即被装饰的对象的共同行为。
+2. ConcreteComponent（具体组件）：实现了组件接口，是被装饰的对象。
+3. Decorator（装饰器）：维持一个指向组件对象的引用，并实现与组件接口一致的接口。它可以在调用组件之前或之后执行额外的行为。
+4. ConcreteDecorator（具体装饰器）：实现了装饰器接口，具体装饰器可以为组件添加额外的功能。
+
+装饰器模式的关键思想是通过组合而不是继承来实现功能的扩展。它使得对象可以在运行时动态地添加或修改行为，而无需改变现有的代码结构。
+
+```cpp
+#include <iostream>
+using namespace std;
+
+// 抽象业务类
+class Chat {
+public:
+	virtual void Connect() = 0;
+};
+
+// 业务具体实现类
+class NetChat: public Chat {
+public:
+	void Connect() {
+		cout << "net chat connection..." << endl;
+	}
+};
+
+// 装饰器接口，需要继承自抽象业务类
+class Decorate: public Chat {
+public:
+	Decorate(Chat* chat): originChat(chat) {}
+	
+	// 这两个接口不应该在父类中定义
+	// 因为不是所有子类都需要他们
+	// 需要扩展通过覆写的方式进行
+	// virtual void Before();
+	// virtual void After();
+	
+protected:
+	// 要装饰的对象
+	Chat *originChat = nullptr;	
+};
+
+// 核心方法执行前装饰器
+class DecorateBefore: public Decorate {
+public:	
+	DecorateBefore(Chat *chat): Decorate(chat) {
+		
+	}
+	
+	// 覆写掉父类方法，然后加上装饰器扩展功能
+	void Connect() {
+		cout << "before decorator" << endl;
+		originChat->Connect();
+	}
+};
+
+// 核心方法执行后装饰器
+class DecorateAfter: public Decorate {
+public:	
+	DecorateAfter(Chat *chat): Decorate(chat) {
+		
+	}
+	
+	void Connect() {
+		// 如果把DecorateBefore修饰后的chat传进来，就能
+		// 实现前后拦截
+		originChat->Connect();
+		cout << "after decorator" << endl;
+	}
+};
+
+int main() {
+	Chat *chat = new NetChat();
+	
+	// 通过多个装饰器组合，能不改变原类同时实现扩展
+	chat = new DecorateBefore(chat);
+	chat = new DecorateAfter(chat);
+	chat->Connect();
+	
+	delete chat;
+	return 0;
+}
+```
+
+**总结：**
+1. 装饰模式用于动态地给一个对象增加一些额外的职责，就增加对象功 能来说，装饰模式比生成子类实现更为灵活。它是一种对象结构型模 式。
+2. 装饰模式包含四个角色：抽象构件定义了对象的接口，可以给这些对 象动态增加职责（方法）；具体构件定义了具体的构件对象，实现了 在抽象构件中声明的方法，装饰器可以给它增加额外的职责（方法）； 抽象装饰类是抽象构件类的子类，用于给具体构件增加职责，但是具 体职责在其子类中实现；具体装饰类是抽象装饰类的子类，负责向构 件添加新的职责。
+3. 使用装饰模式来实现扩展比继承更加灵活，它以对客户透明的方式动 态地给一个对象附加更多的责任。装饰模式可以在不需要创造更多子 类的情况下，将对象的功能加以扩展。
+4. 装饰模式的主要优点在于可以提供比继承更多的灵活性，可以通过一种动态的 方式来扩展一个对象的功能，并通过使用不同的具体装饰类以及这些装饰类的 排列组合，可以创造出很多不同行为的组合，而且具体构件类与具体装饰类可 以独立变化，用户可以根据需要增加新的具体构件类和具体装饰类；其主要缺 点在于使用装饰模式进行系统设计时将产生很多小对象，而且装饰模式比继承 更加易于出错，排错也很困难，对于多次装饰的对象，调试时寻找错误可能需 要逐级排查，较为烦琐。
+5. 装饰模式适用情况包括：在不影响其他对象的情况下，以动态、透明的方式给 单个对象添加职责；需要动态地给一个对象增加功能，这些功能也可以动态地 被撤销；当不能采用继承的方式对系统进行扩充或者采用继承不利于系统扩展 和维护时。
+6. 装饰模式可分为透明装饰模式和半透明装饰模式：在透明装饰模式中，要求客 户端完全针对抽象编程，装饰模式的透明性要求客户端程序不应该声明具体构 件类型和具体装饰类型，而应该全部声明为抽象构件类型；半透明装饰模式允 许用户在客户端声明具体装饰者类型的对象，调用在具体装饰者中新增的方法。
